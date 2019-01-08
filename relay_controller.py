@@ -1,13 +1,20 @@
 #!/usr/bin/env python2.7
+"""This module provides an interface to relays connected to GPIO pins. The relays are considered to 
+be part of a "controller" which is simply a collection of relays (you might define a controller to 
+match with an actual multi-channel relay board, although this isn't required)."""
 
 # wiringpi uses a lil different pin numbering scheme. It's not physical pin or GPIO, it's their
 # own setup. You can see the reference to it here: https://projects.drogon.net/raspberry-pi/wiringpi/pins/
-import wiringpi
+from datetime import datetime
 import time
 import threading
-from datetime import datetime
+import wiringpi
 
-class relay():
+class Relay(object):
+    """ This class defines the basic operation of a relay connected via a GPIO pin. It
+    includes Threading support to allow a relay to be "turned on" (closed) for a period
+    of time after which it is automatically "turned off" (opened)"""
+
     CLOSED = 1
     OPEN = 0
     UNKNOWN = -1
@@ -50,7 +57,8 @@ class relay():
         t = threading.Thread(target=self._close, args=(duration,))
         t.start()
        
-class relay_controller:
+class RelayController(object):
+    """This class is what is used to talk to a relay rather than using the relay class directly."""
     channels = 0
     relays = []
 
@@ -69,7 +77,7 @@ class relay_controller:
                 if not "position" in channel:
                     channel["position"] = idx
                 channel["interruptor"] = self.interruptor
-                self.relays.append(relay(**channel))
+                self.relays.append(Relay(**channel))
         else:
             raise KeyError("Pass a list of format: [{'name': 'front', 'pin': 1, 'latching': False, 'position': 1, 'state': relay.UNKNOWN}]")
         
@@ -84,7 +92,7 @@ class relay_controller:
         # seen the event.
         time.sleep(0.1)
         for channel in self.relays:
-            channel.set_state(relay.OPEN)
+            channel.set_state(Relay.OPEN)
         self.interruptor.clear()
     
     def close_channel(self, channel, duration):
