@@ -5,7 +5,7 @@
 import wiringpi
 import time
 import threading
-import datetime
+from datetime import datetime
 
 class relay():
     CLOSED = 1
@@ -47,7 +47,7 @@ class relay():
         self.set_state(self.OPEN)
 
     def close(self, duration=10):
-        t = threading.Thread(target=self._close, args=(duration))
+        t = threading.Thread(target=self._close, args=(duration,))
         t.start()
        
 class relay_controller:
@@ -74,6 +74,7 @@ class relay_controller:
             raise KeyError("Pass a list of format: [{'name': 'front', 'pin': 1, 'latching': False, 'position': 1, 'state': relay.UNKNOWN}]")
         
         self.channels = len(relays)
+        self.open_all()
 
     def open_all(self):
         self.interruptor.set()
@@ -88,6 +89,15 @@ class relay_controller:
     
     def close_channel(self, channel, duration):
         self.relays[channel-1].close(duration)
+    
+    def close_all(self, duration):
+        self.interruptor.set()
+        time.sleep(0.1)
+        self.interruptor.clear()
+
+        time.sleep(0.1)
+        for i in range(len(self.relays)):
+            self.close_channel(i+1, duration)
 
     
 
