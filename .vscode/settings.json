@@ -1,0 +1,11 @@
+{
+    "python.pythonPath": "/usr/local/bin/python",
+    "files.exclude": {
+        "**/.git": true,
+        "**/.pyc": true,
+        "**/.svn": true,
+        "**/.hg": true,
+        "**/CVS": true,
+        "**/.DS_Store": true
+    }
+}

@@ -108,6 +108,3 @@ class RelayController(object):
         time.sleep(0.1)
         for i in range(len(self.relays)):
             self.close_channel(i+1, duration)
-
-    
-
