@@ -112,7 +112,7 @@ class RelayController(object):
     
     def __close_channels(self, channel_list):
         i = 0
-        while not self.interruptor.is_set() or (i <= (len(channel_list)-1)):
+        while not self.interruptor.is_set() or (i < len(channel_list)):
             thread = self.relays[channel_list[i][0]].close(channel_list[i][1])
             thread.join()
             i += 1
