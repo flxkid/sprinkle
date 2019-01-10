@@ -43,10 +43,10 @@ class Relay(object):
         wiringpi.digitalWrite(self.gpio_pin, relay_state)
     
     def __close(self, duration):
-        if not self.interruptor.is_set() or self.get_state() == self.OPEN:
+        if not self.interruptor.is_set():
             self.set_state(self.CLOSED)
             started_at = datetime.now()
-            while not self.interruptor.is_set():
+            while not self.interruptor.is_set() or self.get_state() == self.OPEN:
                 time.sleep(0.01) # pass control to other threads
                 if (datetime.now() - started_at).total_seconds() > duration:
                     break
