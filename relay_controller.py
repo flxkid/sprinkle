@@ -80,7 +80,7 @@ class RelayController(object):
                 channel["interruptor"] = self.interruptor
                 self.relays.append(Relay(**channel))
         else:
-            raise KeyError("Pass a list of format: [{'name': 'front', 'pin': 1, 'latching': False, 'position': 1, 'state': relay.UNKNOWN}]")
+            raise KeyError("Pass a list of format: [{'name': 'front', 'pin': 1, 'position': 1, 'state': relay.UNKNOWN}]")
         
         self.channels = len(relays)
         self.open_all()
@@ -112,7 +112,7 @@ class RelayController(object):
     
     def __close_channels(self, channel_list):
         i = 0
-        while not self.interruptor.is_set() or (i >= len(channel_list)):
+        while not self.interruptor.is_set() or (i <= (len(channel_list)-1)):
             thread = self.relays[channel_list[i][0]].close(channel_list[i][1])
             thread.join()
             i += 1
