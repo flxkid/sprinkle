@@ -42,19 +42,21 @@ class Relay(object):
     def set_state(self, relay_state):
         wiringpi.digitalWrite(self.gpio_pin, relay_state)
     
-    def _close(self, duration):
-        self.set_state(self.CLOSED)
-        started_at = datetime.now()
-        while not self.interruptor.is_set():
-            time.sleep(0) # pass control to other threads
-            if (datetime.now() - started_at).total_seconds() > duration:
-                break
+    def __close(self, duration):
+        if not self.interruptor.is_set():
+            self.set_state(self.CLOSED)
+            started_at = datetime.now()
+            while not self.interruptor.is_set():
+                time.sleep(0) # pass control to other threads
+                if (datetime.now() - started_at).total_seconds() > duration:
+                    break
 
         self.set_state(self.OPEN)
 
     def close(self, duration=10):
-        t = threading.Thread(target=self._close, args=(duration,))
+        t = threading.Thread(target=self.__close, args=(duration,))
         t.start()
+        return t
        
 class RelayController(object):
     """This class is what is used to talk to a relay rather than using the relay class directly."""
@@ -88,14 +90,14 @@ class RelayController(object):
         that any threads that are currently holding a relay in a state will exit"""
 
         self.interruptor.set()
-
         # putting a small pause in here to make sure any threads that may be still running get a chance to see
         # the interruptor event being set. This is easier than maintaining a list and verifying they have all
         # seen the event.
         time.sleep(0.1)
+        self.interruptor.clear()
+
         for channel in self.relays:
             channel.set_state(Relay.OPEN)
-        self.interruptor.clear()
     
     def close_channel(self, channel, duration):
         self.relays[channel-1].close(duration)
@@ -105,6 +107,22 @@ class RelayController(object):
         time.sleep(0.1)
         self.interruptor.clear()
 
-        time.sleep(0.1)
         for i in range(len(self.relays)):
             self.close_channel(i+1, duration)
+    
+    def __close_channels(self, channel_list):
+        i = 0
+        while not self.interruptor.is_set() or (i >= len(channel_list)):
+            thread = self.relays[channel_list[i][0]].close(channel_list[i][1])
+            thread.join()
+            i += 1
+
+    def close_channels(self, channel_list):
+        """ This function allows you to close ("turn on") channels one after another in order for a defined
+        amount of time. So you could turn on Channel 3 for 10 minutes, then Channel 1 for 5 minutes, then 
+        Channel 4 for 20 mins. The channel list should be a list of tuples containing the channel number &
+        duration (i.e. [(3, 600), (1, 300), (4, 1200)] )"""
+
+        if isinstance(channel_list, list):
+            t = threading.Thread(target=self.__close_channels, args=(list,))
+            t.start()
