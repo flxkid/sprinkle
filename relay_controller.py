@@ -124,5 +124,5 @@ class RelayController(object):
         duration (i.e. [(3, 600), (1, 300), (4, 1200)] )"""
 
         if isinstance(channel_list, list):
-            t = threading.Thread(target=self.__close_channels, args=(list,))
+            t = threading.Thread(target=self.__close_channels, args=(channel_list,))
             t.start()
