@@ -119,7 +119,7 @@ class RelayController(object):
         for channel in self.relays:
             channel.open()
     
-    def close_all(self, duration):
+    def close_all(self, duration=float("inf")):
         """ This can be used to "turn on" or close all relay channels immediately. Note that for duration
         you can pass a value like float("inf") to effective keep the relay closed forever (or until the 
         equipment is powered off or some other command opens the relay channel which will end the threads
@@ -142,7 +142,7 @@ class RelayController(object):
         else:
             raise KeyError("Can't open channel. channel number or name %s not found." % channel)
 
-    def close_channel(self, channel, duration=10):
+    def close_channel(self, channel, duration=float("inf")):
         """ You can either pass a channel number (Which maps to the ordinal position of the relay recorded in
         the relay object. This may or may not also be the order the relay appears in the relays array) or you
         cann pass the channel name. You should also pass a duration or it defaults to 10 seconds."""
