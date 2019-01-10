@@ -47,7 +47,7 @@ class Relay(object):
             self.set_state(self.CLOSED)
             started_at = datetime.now()
             while not self.interruptor.is_set():
-                time.sleep(0) # pass control to other threads
+                time.sleep(0.001) # pass control to other threads
                 if (datetime.now() - started_at).total_seconds() > duration:
                     break
 
