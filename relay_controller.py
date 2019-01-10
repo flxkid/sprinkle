@@ -46,7 +46,7 @@ class Relay(object):
         if not self.interruptor.is_set():
             self.set_state(self.CLOSED)
             started_at = datetime.now()
-            while not self.interruptor.is_set():
+            while not self.interruptor.is_set() or self.get_state() == self.OPEN:
                 time.sleep(0) # pass control to other threads
                 if (datetime.now() - started_at).total_seconds() > duration:
                     break
@@ -59,7 +59,8 @@ class Relay(object):
         return t
        
 class RelayController(object):
-    """This class is what is used to talk to a relay rather than using the relay class directly."""
+    """This class is what is used to talk to relays rather than using the relay class directly.
+    It supports the idea of a relay board that has multiple relay channels."""
     channels = 0
     relays = []
 
@@ -85,6 +86,12 @@ class RelayController(object):
         self.channels = len(relays)
         self.open_all()
 
+    def add_relay(self, pin, relay_name='', position=None, state=Relay.UNKNOWN):
+        new_relay = Relay(pin, len(relays)+1, name=relay_name)
+        self.relays.append(new_relay)
+        self.channels += 1
+        return new_relay
+
     def open_all(self):
         """ This can be used to "turn off" all relays immediately. We also set and clear our interruptor so
         that any threads that are currently holding a relay in a state will exit"""
@@ -99,22 +106,49 @@ class RelayController(object):
         for channel in self.relays:
             channel.set_state(Relay.OPEN)
     
-    def close_channel(self, channel, duration):
-        self.relays[channel-1].close(duration)
+    def open_channel(self, channel):
+        if isinstance(channel, str):
+            chan = next((i for i in self.relays if i.name == channel), None)
+        else:
+            chan = next((i for i in self.relays if i.ordinal_pos == channel), None)
+        if not chan is None:
+            chan.set_state(Relay.OPEN)
+        else:
+            raise KeyError("Can't open channel. channel number or name %s not found." % channel)
+
+    def close_channel(self, channel, duration=10):
+        """ You can either pass a channel number (Which maps to the ordinal position of the relay recorded in
+        the relay object. This may or may not also be the order the relay appears in the relays array) or you
+        cann pass the channel name. You should also pass a duration or it defaults to 10 seconds."""
+        if isinstance(channel, str):
+            chan = next((i for i in self.relays if i.name == channel), None)
+        else:
+            chan = next((i for i in self.relays if i.ordinal_pos == channel), None)
+        if not chan is None:
+            chan.close(duration)
+        else:
+            raise KeyError("Can't close channel. Channel number or name %s not found." % channel)
     
     def close_all(self, duration):
         self.interruptor.set()
         time.sleep(0.1)
         self.interruptor.clear()
 
-        for i in range(len(self.relays)):
-            self.close_channel(i+1, duration)
+        for channel in self.relays:
+            channel.close(duration)
     
     def __close_channels(self, channel_list):
+        """ Loop through the channels (as long as the interruptor doesn't get set) and call the close method
+        directly on each channel. This returns the thread that is running the timed close. We join that thread 
+        so that each channel close is called one after the other."""
         i = 0
         while not self.interruptor.is_set() and (i < len(channel_list)):
-            thread = self.relays[(channel_list[i][0] - 1)].close(channel_list[i][1])
-            thread.join()
+            chan = next((i for i in self.relays if i.ordinal_pos == channel_list[i][0]), None)
+            if not chan is None:
+                thread = chan.close(channel_list[i][1])
+                thread.join()
+            else:
+                raise KeyError("Channel number %d" % channel_list[i][0])
             i += 1
 
     def close_channels(self, channel_list):
