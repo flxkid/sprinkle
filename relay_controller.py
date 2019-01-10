@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.7
-"""This module provides an interface to relays connected to GPIO pins. The relays are considered to 
-be part of a "controller" which is simply a collection of relays (you might define a controller to 
+"""This module provides an interface to relays connected to GPIO pins. The relays are considered to
+be part of a "controller" which is simply a collection of relays (you might define a controller to
 match with an actual multi-channel relay board, although this isn't required)."""
 
 # wiringpi uses a lil different pin numbering scheme. It's not physical pin or GPIO, it's their
@@ -19,18 +19,17 @@ class Relay(object):
     OPEN = 0
     UNKNOWN = -1
 
-    GPIO_Pin = 0
-    latching = False
+    gpio_pin = 0
     ordinal_pos = 0
     name = ''
     interruptor = None
 
-    def __init__(self, pin, position=0, latching=False, state=-1, name='', interruptor=None):
-        self.GPIO_Pin = pin
+    def __init__(self, pin, position=0, state=-1, name='', interruptor=None):
+        self.gpio_pin = pin
         self.ordinal_pos = position
         self.name = name
         self.interruptor = interruptor
-        wiringpi.pinMode(self.GPIO_Pin, 1) # set the pin to output mode
+        wiringpi.pinMode(self.gpio_pin, 1) # set the pin to output mode
         
         # If no initial state is passed, then don't assume any state is correct, leave
         # it as-is.
@@ -38,10 +37,10 @@ class Relay(object):
             self.set_state(state)
 
     def get_state(self):
-        return wiringpi.digitalRead(self.GPIO_Pin)
+        return wiringpi.digitalRead(self.gpio_pin)
 
     def set_state(self, relay_state):
-        wiringpi.digitalWrite(self.GPIO_Pin, relay_state)
+        wiringpi.digitalWrite(self.gpio_pin, relay_state)
     
     def _close(self, duration):
         self.set_state(self.CLOSED)
@@ -68,7 +67,7 @@ class RelayController(object):
     # ALL currently sleeping relays!
     interruptor = threading.Event()
 
-    def __init__(self, relays=[]):
+    def __init__(self, relays=None):
         wiringpi.wiringPiSetup()
         if isinstance(relays, list):
             for idx, channel in enumerate(relays, start=1):
@@ -85,6 +84,9 @@ class RelayController(object):
         self.open_all()
 
     def open_all(self):
+        """ This can be used to "turn off" all relays immediately. We also set and clear our interruptor so
+        that any threads that are currently holding a relay in a state will exit"""
+
         self.interruptor.set()
 
         # putting a small pause in here to make sure any threads that may be still running get a chance to see
