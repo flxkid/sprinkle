@@ -86,8 +86,12 @@ class RelayController(object):
         self.channels = len(relays)
         self.open_all()
 
-    def add_relay(self, pin, relay_name='', position=None, state=Relay.UNKNOWN):
-        new_relay = Relay(pin, len(self.relays)+1, name=relay_name)
+    def add_channel(self, pin, channel_name='', position=None, state=Relay.UNKNOWN):
+        """ If channels are not added controller creation, then you're able to add them one at a time
+        using this instead. If a position is not passed, it is assumed that the position is just list 
+        length plus one."""
+
+        new_relay = Relay(pin, position or len(self.relays)+1, name=channel_name)
         self.relays.append(new_relay)
         self.channels += 1
         return new_relay
@@ -105,6 +109,19 @@ class RelayController(object):
 
         for channel in self.relays:
             channel.set_state(Relay.OPEN)
+    
+    def close_all(self, duration):
+        """ This can be used to "turn on" or close all relay channels immediately. Note that for duration
+        you can pass a value like float("inf") to effective keep the relay closed forever (or until the 
+        equipment is powered off or some other command opens the relay channel which will end the threads
+        that are waiting on forever)."""
+
+        self.interruptor.set()
+        time.sleep(0.1)
+        self.interruptor.clear()
+
+        for channel in self.relays:
+            channel.close(duration)
     
     def open_channel(self, channel):
         if isinstance(channel, str):
@@ -128,14 +145,6 @@ class RelayController(object):
             chan.close(duration)
         else:
             raise KeyError("Can't close channel. Channel number or name %s not found." % channel)
-    
-    def close_all(self, duration):
-        self.interruptor.set()
-        time.sleep(0.1)
-        self.interruptor.clear()
-
-        for channel in self.relays:
-            channel.close(duration)
     
     def __close_channels(self, channel_list):
         """ Loop through the channels (as long as the interruptor doesn't get set) and call the close method
