@@ -34,29 +34,38 @@ class Relay(object):
         # If no initial state is passed, then don't assume any state is correct, leave
         # it as-is.
         if (state <> self.UNKNOWN):
-            self.set_state(state)
+            self.__set_state(state)
 
-    def get_state(self):
+    def __get_state(self):
         return wiringpi.digitalRead(self.gpio_pin)
 
-    def set_state(self, relay_state):
+    def __set_state(self, relay_state):
         wiringpi.digitalWrite(self.gpio_pin, relay_state)
     
     def __close(self, duration):
         if not self.interruptor.is_set():
-            self.set_state(self.CLOSED)
+            self.__set_state(self.CLOSED)
             started_at = datetime.now()
-            while not self.interruptor.is_set() and self.get_state() <> self.OPEN:
+            while not self.interruptor.is_set() and self.is_closed():
                 time.sleep(0.05) # pass control to other threads
                 if (datetime.now() - started_at).total_seconds() > duration:
                     break
 
-        self.set_state(self.OPEN)
+        self.__set_state(self.OPEN)
 
     def close(self, duration=10):
         t = threading.Thread(target=self.__close, args=(duration,))
         t.start()
         return t
+    
+    def open(self):
+        self.__set_state(self.OPEN)
+    
+    def is_open(self):
+        return (self.__get_state() == self.OPEN)
+    
+    def is_closed(self):
+        return (self.__get_state() == self.CLOSED)
        
 class RelayController(object):
     """This class is what is used to talk to relays rather than using the relay class directly.
@@ -108,7 +117,7 @@ class RelayController(object):
         self.interruptor.clear()
 
         for channel in self.relays:
-            channel.set_state(Relay.OPEN)
+            channel.open()
     
     def close_all(self, duration):
         """ This can be used to "turn on" or close all relay channels immediately. Note that for duration
@@ -129,7 +138,7 @@ class RelayController(object):
         else:
             chan = next((i for i in self.relays if i.ordinal_pos == channel), None)
         if not chan is None:
-            chan.set_state(Relay.OPEN)
+            chan.open()
         else:
             raise KeyError("Can't open channel. channel number or name %s not found." % channel)
 
