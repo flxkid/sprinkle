@@ -8,6 +8,7 @@ match with an actual multi-channel relay board, although this isn't required).""
 from datetime import datetime
 import time
 import threading
+import atexit
 import wiringpi
 
 class Relay(object):
@@ -79,6 +80,9 @@ class RelayController(object):
     # ALL currently sleeping relays!
     interruptor = threading.Event()
 
+    def cleanup(self):
+        self.interruptor.set()
+        
     def __init__(self, relays=None):
         wiringpi.wiringPiSetup()
         if isinstance(relays, list):
@@ -94,6 +98,7 @@ class RelayController(object):
         
         self.channels = len(relays)
         self.open_all()
+        atexit.register(self.cleanup)
 
     def add_channel(self, pin, channel_name='', position=None, state=Relay.UNKNOWN):
         """ If channels are not added controller creation, then you're able to add them one at a time
