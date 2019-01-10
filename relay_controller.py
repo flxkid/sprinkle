@@ -87,7 +87,7 @@ class RelayController(object):
         self.open_all()
 
     def add_relay(self, pin, relay_name='', position=None, state=Relay.UNKNOWN):
-        new_relay = Relay(pin, len(relays)+1, name=relay_name)
+        new_relay = Relay(pin, len(self.relays)+1, name=relay_name)
         self.relays.append(new_relay)
         self.channels += 1
         return new_relay
