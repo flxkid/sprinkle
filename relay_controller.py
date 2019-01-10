@@ -112,7 +112,7 @@ class RelayController(object):
     
     def __close_channels(self, channel_list):
         i = 0
-        while not self.interruptor.is_set() or (i < len(channel_list)):
+        while not self.interruptor.is_set() and (i < len(channel_list)):
             thread = self.relays[channel_list[i][0]].close(channel_list[i][1])
             thread.join()
             i += 1
@@ -122,6 +122,10 @@ class RelayController(object):
         amount of time. So you could turn on Channel 3 for 10 minutes, then Channel 1 for 5 minutes, then 
         Channel 4 for 20 mins. The channel list should be a list of tuples containing the channel number &
         duration (i.e. [(3, 600), (1, 300), (4, 1200)] )"""
+
+        self.interruptor.set()
+        time.sleep(0.1)
+        self.interruptor.clear()
 
         if isinstance(channel_list, list):
             t = threading.Thread(target=self.__close_channels, args=(channel_list,))
