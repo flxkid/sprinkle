@@ -162,7 +162,7 @@ class RelayController(object):
         so that each channel close is called one after the other."""
         i = 0
         while not self.interruptor.is_set() and (i < len(channel_list)):
-            chan = next((i for i in self.relays if i.ordinal_pos == channel_list[i][0]), None)
+            chan = next((relay for relay in self.relays if relay.ordinal_pos == channel_list[i][0]), None)
             if not chan is None:
                 thread = chan.close(channel_list[i][1])
                 thread.join()
